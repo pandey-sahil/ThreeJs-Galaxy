@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smooth Swiper Awards Demo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.7/swiper-bundle.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .swiper.is-awards {
+            width: 100%;
+            height: 400px;
+            padding: 50px 0;
+        }
+
+        .swiper-slide {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(145deg, #2d5a27, #4a7c59);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .swiper-slide::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, #ffd700, #ffb347);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+
+        .award-content {
+            position: relative;
+            z-index: 2;
+            padding: 20px;
+        }
+
+        .award-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .award-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .award-organization {
+            font-size: 12px;
+            opacity: 0.8;
+            font-style: italic;
+        }
+
+        .swiper-slide-active {
+            transform: scale(1.1);
+        }
+
+        .solution-selector {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .solution-btn {
+            background: #4a7c59;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .solution-btn:hover {
+            background: #2d5a27;
+            transform: translateY(-2px);
+        }
+
+        .solution-btn.active {
+            background: #ffd700;
+            color: #2d5a27;
+        }
+
+        .info-text {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .swiper-slide {
+                width: 250px;
+                height: 250px;
+            }
+            
+            .solution-btn {
+                padding: 8px 15px;
+                font-size: 12px;
+                margin: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="solution-selector">
+            <button class="solution-btn active" onclick="initSolution1()">Solution 1: No Loop</button>
+            <button class="solution-btn" onclick="initSolution2()">Solution 2: Smooth Loop</button>
+            <button class="solution-btn" onclick="initSolution3()">Solution 3: Custom Loop</button>
+        </div>
+
+        <div class="swiper is-awards">
+            <div class="swiper-wrapper">
+                <div class="swiper-slide">
+                    <div class="award-content">
+                        <div class="award-title">International Safety Award</div>
+                        <div class="award-subtitle">2023</div>
+                        <div class="award-organization">Sustainability Conclave and Awards</div>
+                    </div>
+                </div>
+                <div class="swiper-slide">
+                    <div class="award-content">
+                        <div class="award-title">British Safety Council Award</div>
+                        <div class="award-subtitle">2023</div>
+                        <div class="award-organization">Sustainability Conclave and Awards</div>
+                    </div>
+                </div>
+                <div class="swiper-slide">
+                    <div class="award-content">
+                        <div class="award-title">Green Warrior Award</div>
+                        <div class="award-subtitle">Forbes, 2022</div>
+                        <div class="award-organization">Sustainability Conclave and Awards</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-text">
+            <p>Swipe or drag to navigate through awards. Try different solutions to see the smooth transitions!</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.7/swiper-bundle.min.js"></script>
+    <script>
+        let swiperAwards;
+
+        // Solution 1: No loop - smooth experience  
+        function initSolution1() {
+            if (swiperAwards) swiperAwards.destroy();
+            
+            // Reset to original 3 slides
+            resetOriginalSlides();
+            
+            swiperAwards = new Swiper(".swiper.is-awards", {
+                loop: false,
+                effect: "coverflow",
+                grabCursor: true,
+                initialSlide: 1, // Center slide for 3 slides
+                centeredSlides: true,
+                speed: 600,
+                slidesPerView: "auto",
+                coverflowEffect: {
+                    rotate: 0,
+                    stretch: 48,
+                    depth: 250,
+                    modifier: 1,
+                    slideShadows: true,
+                },
+            });
+            
+            setActiveButton(0);
+        }
+
+        // Solution 2: Smooth loop with enhanced settings
+        function initSolution2() {
+            if (swiperAwards) swiperAwards.destroy();
+            
+            // Reset to original 3 slides
+            resetOriginalSlides();
+            
+            swiperAwards = new Swiper(".swiper.is-awards", {
+                loop: true,
+                effect: "coverflow",
+                grabCursor: true,
+                initialSlide: 1, // Center slide for 3 slides
+                centeredSlides: true,
+                speed: 800,
+                slidesPerView: "auto",
+                loopFillGroupWithBlank: true,
+                coverflowEffect: {
+                    rotate: 0,
+                    stretch: 48,
+                    depth: 250,
+                    modifier: 1,
+                    slideShadows: true,
+                },
+                on: {
+                    slideChangeTransitionStart: function () {
+                        this.allowTouchMove = false;
+                    },
+                    slideChangeTransitionEnd: function () {
+                        this.allowTouchMove = true;
+                    },
+                },
+            });
+            
+            setActiveButton(1);
+        }
+
+        function resetOriginalSlides() {
+            const wrapper = document.querySelector('.swiper-wrapper');
+            wrapper.innerHTML = `
+                <div class="swiper-slide">
+                    <div class="award-content">
+                        <div class="award-title">International Safety Award</div>
+                        <div class="award-subtitle">2023</div>
+                        <div class="award-organization">Sustainability Conclave and Awards</div>
+                    </div>
+                </div>
+                <div class="swiper-slide">
+                    <div class="award-content">
+                        <div class="award-title">British Safety Council Award</div>
+                        <div class="award-subtitle">2023</div>
+                        <div class="award-organization">Sustainability Conclave and Awards</div>
+                    </div>
+                </div>
+                <div class="swiper-slide">
+                    <div class="award-content">
+                        <div class="award-title">Green Warrior Award</div>
+                        <div class="award-subtitle">Forbes, 2022</div>
+                        <div class="award-organization">Sustainability Conclave and Awards</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Solution 3: True infinite loop with visual continuity
+        function initSolution3() {
+            if (swiperAwards) swiperAwards.destroy();
+            
+            // Create duplicate slides for seamless loop
+            const originalSlides = document.querySelectorAll('.swiper-slide');
+            const wrapper = document.querySelector('.swiper-wrapper');
+            
+            // Clear wrapper
+            wrapper.innerHTML = '';
+            
+            // Add slides in loop order: [last, first, second, third, first]
+            const slideContents = [
+                { title: "International Safety Award", subtitle: "2023", org: "Sustainability Conclave and Awards" },
+                { title: "British Safety Council Award", subtitle: "2023", org: "Sustainability Conclave and Awards" },
+                { title: "Green Warrior Award", subtitle: "Forbes, 2022", org: "Sustainability Conclave and Awards" }
+            ];
+            
+            // Create loop structure: last + original + first
+            const loopSlides = [
+                slideContents[2], // last slide at beginning
+                ...slideContents, // original slides
+                slideContents[0]  // first slide at end
+            ];
+            
+            loopSlides.forEach((slide, index) => {
+                const slideElement = document.createElement('div');
+                slideElement.className = 'swiper-slide';
+                slideElement.innerHTML = `
+                    <div class="award-content">
+                        <div class="award-title">${slide.title}</div>
+                        <div class="award-subtitle">${slide.subtitle}</div>
+                        <div class="award-organization">${slide.org}</div>
+                    </div>
+                `;
+                wrapper.appendChild(slideElement);
+            });
+            
+            swiperAwards = new Swiper(".swiper.is-awards", {
+                loop: false,
+                effect: "coverflow",
+                grabCursor: true,
+                initialSlide: 2, // Start at middle (original first slide)
+                centeredSlides: true,
+                speed: 600,
+                slidesPerView: "auto",
+                coverflowEffect: {
+                    rotate: 0,
+                    stretch: 48,
+                    depth: 250,
+                    modifier: 1,
+                    slideShadows: true,
+                },
+                on: {
+                    slideChange: function() {
+                        // If reached duplicate at end, jump to original
+                        if (this.activeIndex === 4) {
+                            setTimeout(() => {
+                                this.slideTo(1, 0); // Jump to original first slide
+                            }, 50);
+                        }
+                        // If reached duplicate at beginning, jump to original
+                        else if (this.activeIndex === 0) {
+                            setTimeout(() => {
+                                this.slideTo(3, 0); // Jump to original last slide
+                            }, 50);
+                        }
+                    }
+                },
+            });
+            
+            setActiveButton(2);
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.solution-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        // Initialize with Solution 1 by default
+        initSolution1();
+
+        console.log("Smooth Swiper Awards Demo loaded successfully!");
+    </script>
+</body>
+</html>
