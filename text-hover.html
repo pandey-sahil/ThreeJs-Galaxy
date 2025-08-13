@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Image Distortion</title>
+<style>
+  body { margin: 0; background: #000; }
+  .hero_home_webgl {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hero_home_logo {
+    display: none; /* hide the static image */
+  }
+  .g_canvas_distortion {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<div data-webgl-container class="hero_home_webgl">
+  <img src="https://cdn.prod.website-files.com/680244911c3d7d28354cb55b/6835580378ad713e656b5b80_SUPERSOLID.avif"
+       id="distorted-image"
+       alt="Supersolid Logo"
+       class="hero_home_logo">
+  <canvas class="g_canvas_distortion"></canvas>
+</div>
+
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script>
+// Basic variables
+const container = document.querySelector("[data-webgl-container]");
+const canvas = container.querySelector(".g_canvas_distortion");
+const img = document.getElementById("distorted-image");
+
+let renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight);
+
+let scene = new THREE.Scene();
+let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+let mouse = new THREE.Vector2(-1, -1);
+let velocity = new THREE.Vector2(0, 0);
+let lastMouse = new THREE.Vector2(-1, -1);
+
+let flowRT1, flowRT2, finalRT;
+let flowMaterial, finalMaterial;
+let quad;
+
+init();
+
+function init() {
+  // Load texture
+  new THREE.TextureLoader().load(img.src, texture => {
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+
+    const res = 256;
+    const rtParams = {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+      type: THREE.UnsignedByteType
+    };
+    flowRT1 = new THREE.WebGLRenderTarget(res, res, rtParams);
+    flowRT2 = new THREE.WebGLRenderTarget(res, res, rtParams);
+    finalRT = new THREE.WebGLRenderTarget(container.clientWidth, container.clientHeight, rtParams);
+
+    // Simple flowmap shader (from your Q shader)
+    flowMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        uMouse: { value: mouse },
+        uVelocity: { value: velocity },
+        uResolution: { value: new THREE.Vector2(res, res) },
+        uFalloff: { value: 0.18 },
+        uAlpha: { value: 0.97 },
+        uDissipation: { value: 0.965 },
+        uAspect: { value: 1 },
+        uTexture: { value: flowRT2.texture }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec2 uMouse;
+        uniform vec2 uVelocity;
+        uniform vec2 uResolution;
+        uniform float uFalloff;
+        uniform float uAlpha;
+        uniform float uDissipation;
+        uniform float uAspect;
+        uniform sampler2D uTexture;
+        varying vec2 vUv;
+        void main() {
+          vec4 color = texture2D(uTexture, vUv);
+          color.rgb *= uDissipation;
+          vec2 aspectUv = vUv;
+          aspectUv.x *= uAspect;
+          vec2 cursor = uMouse;
+          cursor.x *= uAspect;
+          float dist = distance(aspectUv, cursor);
+          float influence = 1.0 - smoothstep(0.0, uFalloff, dist);
+          vec2 vel = vec2(uVelocity.x, -uVelocity.y) * influence * uAlpha;
+          color.rg += vel;
+          color.b = length(color.rg) * 2.0;
+          gl_FragColor = color;
+        }
+      `
+    });
+
+    // Simple distortion shader (from your z shader)
+    finalMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        uLogo: { value: texture },
+        uFlowmap: { value: flowRT1.texture },
+        uDistortionStrength: { value: 0.08 },
+        uChromaticAberration: { value: 0.004 },
+        uChromaticSpread: { value: 1.0 }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uLogo;
+        uniform sampler2D uFlowmap;
+        uniform float uDistortionStrength;
+        uniform float uChromaticAberration;
+        uniform float uChromaticSpread;
+        varying vec2 vUv;
+        void main() {
+          vec3 flow = texture2D(uFlowmap, vUv).rgb;
+          vec2 distortedUv = vUv + flow.rg * uDistortionStrength;
+          float aberr = flow.b * uChromaticAberration;
+          vec2 dir = length(flow.rg) > 0.0 ? normalize(flow.rg) : vec2(0.0);
+          vec2 redUv = distortedUv + dir * aberr * uChromaticSpread;
+          vec2 blueUv = distortedUv - dir * aberr * uChromaticSpread;
+          float r = texture2D(uLogo, redUv).r;
+          float g = texture2D(uLogo, distortedUv).g;
+          float b = texture2D(uLogo, blueUv).b;
+          gl_FragColor = vec4(r, g, b, 1.0);
+        }
+      `,
+      transparent: true
+    });
+
+    quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), finalMaterial);
+    scene.add(quad);
+
+    animate();
+  });
+
+  window.addEventListener("mousemove", e => {
+    const rect = container.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = 1 - (e.clientY - rect.top) / rect.height;
+    mouse.set(x, y);
+  });
+
+  window.addEventListener("resize", onResize);
+}
+
+function animate() {
+  velocity.copy(mouse).sub(lastMouse).multiplyScalar(60.0);
+  lastMouse.copy(mouse);
+
+  // Flowmap pass
+  quad.material = flowMaterial;
+  flowMaterial.uniforms.uTexture.value = flowRT2.texture;
+  renderer.setRenderTarget(flowRT1);
+  renderer.render(quad, camera);
+
+  // Distortion pass
+  quad.material = finalMaterial;
+  finalMaterial.uniforms.uFlowmap.value = flowRT1.texture;
+  renderer.setRenderTarget(null);
+  renderer.render(quad, camera);
+
+  // Swap render targets
+  [flowRT1, flowRT2] = [flowRT2, flowRT1];
+
+  requestAnimationFrame(animate);
+}
+
+function onResize() {
+  renderer.setSize(container.clientWidth, container.clientHeight);
+}
+</script>
+</body>
+</html>
